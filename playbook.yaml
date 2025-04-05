@@ -1,0 +1,131 @@
+---
+- name: Setup webserver for Sensoria
+  hosts: webserver
+  become: yes
+  vars_files:
+    - variables.yaml
+  tasks:
+    - name: Add PHP PPA
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+        update_cache: yes
+
+    - name: Install Nginx and PHP packages
+      apt:
+        name:
+          - "{{ nginx_package }}"
+          - "{{ php_package }}"
+          - "{{ php_fpm_package }}"
+          - "{{ php_mysql_package }}"
+        state: present
+        update_cache: yes
+
+    - name: Start nginx and php-fpm services
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - php8.3-fpm
+
+    - name: Deploy registration files
+      copy:
+        src: "files/{{ item }}"
+        dest: "/var/www/html/"
+        mode: '0644'
+      loop:
+        - register.html
+        - register.php
+
+- name: Setup MySQL on dbserver
+  hosts: dbserver
+  become: yes
+  vars_files:
+    - variables.yaml
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - "{{ mysql_package }}"
+          - python3-pymysql
+        state: present
+        update_cache: yes
+
+    - name: Stop MySQL Service
+      service:
+        name: mysql
+        state: stopped
+
+    - name: Start MySQL with skip-grant-tables
+      shell: mysqld_safe --skip-grant-tables &
+      async: 10
+      poll: 0
+
+    - name: Wait for MySQL to start in skip-grant-tables mode
+      wait_for:
+        port: 3306
+        state: started
+        delay: 5
+        timeout: 30
+
+    - name: Set root password and auth plugin
+      shell: |
+        mysql -u root <<EOF
+        ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}';
+        FLUSH PRIVILEGES;
+        EOF
+      args:
+        executable: /bin/bash
+
+    - name: Kill mysqld_safe and restart MySQL normally
+      shell: |
+        pkill -f -- "--skip-grant-tables"
+        sleep 5
+        systemctl start mysql
+
+    - name: Ensure MySQL is running normally
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Create MySQL Admin User for Ansible
+      mysql_user:
+        name: "{{ mysql_admin_user }}"
+        password: "{{ mysql_admin_pass }}"
+        priv: "*.*:ALL,GRANT"
+        host: "localhost"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create Application Database
+      mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_user: "{{ mysql_admin_user }}"
+        login_password: "{{ mysql_admin_pass }}"
+
+    - name: Create Application User
+      mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        state: present
+        login_user: "{{ mysql_admin_user }}"
+        login_password: "{{ mysql_admin_pass }}"
+
+    - name: Create Users Table
+      mysql_query:
+        login_user: "{{ mysql_admin_user }}"
+        login_password: "{{ mysql_admin_pass }}"
+        query: |
+          CREATE TABLE IF NOT EXISTS {{ db_name }}.users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100),
+            email VARCHAR(100) UNIQUE,
+            password VARCHAR(255)
+          );
+

@@ -1,0 +1,17 @@
+nginx_package: nginx
+
+php_package: php8.3
+php_fpm_package: php8.3-fpm
+php_mysql_package: php8.3-mysql
+
+mysql_package: mysql-server
+
+mysql_root_password: rootpassword
+
+mysql_admin_user: ansible_admin
+mysql_admin_pass: admin123
+
+db_name: sensoria_db
+db_user: sensoria_user
+db_password: sensoria_pass
+
