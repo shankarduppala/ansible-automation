@@ -1,0 +1,9 @@
+- name: Run tasks on local machine
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Install curl (on local Ubuntu)
+      apt:
+        name: curl
+        state: present
+      when: ansible_os_family == "Debian"

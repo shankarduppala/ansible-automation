@@ -1,0 +1,32 @@
+---
+apiVersion: v1 
+kind: PersistentVolume 
+metadata: 
+  name: ststic-nfs-pv
+spec:
+  capacith:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclimePolicy: retain 
+  storageClassName: "" 
+  nfs: 
+    server: 192:168.1.100
+    path: "/mnt/data"
+
+...
+---
+#userCliems it via PVC
+
+apiVersion: v1 
+kind: PersistentVolumeClaim 
+metadata:
+  name: ststic-nfs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: "" 
+  

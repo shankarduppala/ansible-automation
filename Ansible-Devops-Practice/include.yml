@@ -1,0 +1,32 @@
+#it is functionaltity in ansible and allows to modulize your playbook by breaking them into resuable compemts
+#1) include_tasks
+#2) import_tasks
+#3) incloude_role/import_role
+
+#include_tasks:
+- nmae: Main playbook 
+  hosts: webservers
+  tasks: 
+    - name: include common setup tasks 
+      include_tasks: common_setup.yml
+    - name: include DB-specfic tasks
+      include_tasks: "{{'mysql.yml' if db_type =='mysql' else 'postgresql.yaml'}}"
+
+#import_tasks
+- name: Main playbook 
+  hosts: webservers 
+  tasks:
+    - name: Import common tasks
+      import_tasks: security_hardening.yaml
+
+# include_role:
+- name: Use databases role 
+  hosts: dbservers 
+  tasks:
+    - name: include databases role 
+      include_role: 
+      name: databases
+      vars: 
+        db_version: 12
+
+#import_role

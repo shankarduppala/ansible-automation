@@ -1,0 +1,88 @@
+# 1) Standard Loops with loop:
+- name: Add multiful users
+  user:
+    name: "{{item}}"
+    state: present 
+    groups: 'wheel'
+  loop:
+    - alice
+    - bob
+    - charlie
+
+# Loop Control:
+- name: creating directories with loop control 
+  file: 
+    path: "/var/www/{{ item }}"
+    state: directory 
+  loop:
+    - site1
+    - site2
+    - site3
+  loop_control:
+    label: "creating directory for {{item}}"
+    pause: 3
+
+# Commonly used loop helpers(with_*)
+#with_items(simple list iteration)
+- name: install packages
+  apt:
+    name: "{{item}}"
+    state: present 
+  with_items:
+    - nginx
+    - httpd
+    - postgresql
+    - redis-server
+#with_dict (dictionary iteration)
+- name: create directory with permissions
+  file:
+    path: "{{item.key}}"
+    state: directory
+    mode: "{{ item.value }}"
+  with_dict:
+    "/tmp/dir1": "0755"
+    "/tmp/dir2": "0777"
+
+#with_file (file content iteration)
+- name: display contant of multiple vars_files
+  debug:
+    msg: "{{item}}"
+  with_files:
+    - /etc/motd
+    - /etc/issue
+
+#with_sequence (number sequence generation)
+- name: create numbered vars 
+  file:
+    path: "/tmp/file{{item}}"
+    state: touch
+  with_sequence: start=1 end=5
+
+# Complex Loops with include_tasks
+- name: Process multiple servers
+  include_tasks: setup_server.yaml
+  loop:
+    - { name: web1, ip: 192:168:1:10}
+    - { name: web2, ip: 192:168:1:11}
+  loop_control:
+    loop_var: server 
+
+#loop index variable:
+- name: print item with index
+  debug:
+    msg: "Item {{ item }} is #{{ansible_loop.index}} of {{ansible_loop.length}}"
+  loop:
+    - one
+    - two
+    - three
+
+#Until loops(retry until condition)
+- name: wait for port to be available
+  wait_for:
+    port: 8080
+    host: "{{ inventory_hostname }}"
+    timeout: 5
+  register: result
+  until: result is succeeded
+  retries: 5
+  delay: 3

@@ -1,0 +1,38 @@
+# Register: capture the output of a task for later use
+- name: check disk size
+  commend: df -h
+  register: disk_info
+
+- name: Display disk info
+  debug:
+    var: disk_info.stdot_lines
+
+#stdout, stdout_lines, stderr, rc, changed, failed
+
+#Advanced register Examples
+#1. Conditional Execution Based on Registered Output
+
+- name: Check if service is running
+  command: systemctl is-active nginx
+  register: service_status
+  ignore_errors: yes
+
+- name: Start service if not running
+  service:
+    name: nginx
+    state: started
+  when: service_status.rc != 0
+# 2. Looping with Registered Results
+
+- name: Check multiple ports
+  wait_for:
+    port: "{{ item }}"
+    timeout: 5
+  loop: [80, 443, 8080]
+  register: port_checks
+
+- name: Show failed ports
+  debug:
+    msg: "Port {{ item.item }} failed"
+  loop: "{{ port_checks.results }}"
+  when: item.failed
