@@ -1,0 +1,76 @@
+# Playbook Variable:
+- hosts:
+  vars:
+    https_paort: 80
+    max_client: 200
+
+# Inventory Variables: INI Format
+[webservers]
+web1.examples.com https_port=8080
+web2.examplr.com https_example=8081
+
+[dbservers]
+ntp_server=ntp.example.com
+
+# Inventory variable: YAML Format
+all: 
+  hosts:
+    web1.example.com:
+      http_port: 8080
+  childern:
+    webservers:
+      vars:
+        ntp_server: ntp.example.com
+
+# Host Variable: (Directory structure)(specfic to individual hosts)
+inventory/host_vars/web1.example.com.yaml
+inventory/group_vars/webservers.yaml
+#Group Variable: (Apply to all hosts in a group)
+
+#facts(Gathered variables)(automatically discoverd system info)
+- name: Display all facts
+  debug:
+    var: ansible_fact
+
+#Registor variables:(Capture output from tasks)
+- name: check disk usage
+  commend: df -h
+  register: disk_usage
+- name: Dispaly disk usage
+  debug:
+    var: disk_usage.stdout_lines
+
+#Extra Variables:(COmmend Line Variables)
+ #Commend line with -e or --extra-vars
+
+ ansible-playbook playbook.yaml -e "http_port=8080"
+
+ #Role variable:
+- defined in roles vars/main.yml
+- default variable in default/main.yml
+
+
+# Include Variables:
+- hosts: all
+  vars_files:
+    - vars/common_vars.yml
+    - vars/secret.yaml
+
+#Array variables:(lists and dictionaries)
+vars:
+  users:
+    - alice
+    - bob
+  user_info:
+    alice:
+      uid: 1001
+    bob:
+      uid: 1002
+
+# Magic variables:
+Special Ansible-provided Variables:
+
+- hostvars
+- group_names
+- inventory_hostname
+- ansible_play_hosts

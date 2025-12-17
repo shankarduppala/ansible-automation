@@ -1,0 +1,102 @@
+- name: install packages
+  hosts: all
+  become: yes
+  tasks: 
+    - name: install nginx
+      apt:
+        name: nginx
+        state: present 
+        update_cache: yes
+      notify: restart nginx 
+    - name: update nginx
+      template:
+        src: nginx.conf.j2 
+        dest: /etc/nginx/nginx.conf 
+      notify: restart nginx
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+# Multiful handlers Examples:
+handlers:
+  - name: restart appache
+    service:
+      name: appache2
+      state: restarted
+  
+  - name: reload mysql 
+    service:
+      name: mysql
+      state: reloaded
+
+  - name: restart all services
+    service:
+      name: "{{item}}"
+      state: restarted
+    loop: [nginx, apache2, mysql]
+
+
+#Advance handers techniques
+# 1) Flushing handlers mid-playbook( force handlers to run at a specfic point)
+tasks:
+  - name: make congfig change
+    template:
+      src: config.j2
+      dest: /etc/service/config 
+    notify: restart service 
+
+  - name: Force handlers to run now
+    meta: flush_handlers
+
+  - name: continuous with other tasks 
+   commend: some_commends
+
+# 2) Handler Listeners:(multiful tasks can notify the same handlers using a common topic)
+handlers:
+  - name: restart web stack
+    listen: "web services restart"
+    services:
+      name: "{{ item }}"
+      state: restarted
+    loop: [nginx, apache, php-fpm]
+
+  - name: update the web config 
+    template:
+      src: web.service.j2
+      dest: /etc/web/web.conf
+    notify: "web services restart"
+
+  - name: Update app config 
+    templete:
+      src: app.conf.j2
+      dest: /etc/app.conf
+    notify: "web services restart"
+
+#3) Conditional handlers:
+handlers:
+  - name: restar service conditionally
+    services:
+    name:myservice
+    state: restarted
+  when: ansible_os_family == "Debian"
+
+#4) handlers with variable:
+
+handlers:
+  - name: restart {{ service_name }}
+    service:
+      name: "{{service_name}}"
+      state: restarted
+tasks:
+  - name: configuration service 
+    template:
+      src: service.conf.j2
+      dest: //etc/service.conf
+    notify: restart webserver
+    vars: 
+      service_name: "webserver"
+
+

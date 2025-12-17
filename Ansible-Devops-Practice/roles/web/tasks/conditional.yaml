@@ -1,0 +1,36 @@
+---
+- name: my first playbook
+  hosts: all
+  become: yes
+  tasks:
+    - name: install nginx on debian-based system
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      notify: restart nginx
+      when: ansible_os_family == "Debian"
+
+    - name: install nginx on Redhat based system
+      yum:
+        name: nginx
+        state: present
+        update_cache: yes
+      notify: restart nginx
+      when: ansible_os_family == "RedHat"
+
+    - name: enabled the services
+      service:
+        name: nginx
+        enabled: yes
+
+    - name: start the service 
+      service:
+        name: nginx
+        state: started
+    - name: copy nginx configuration
+      template:
+        src: /templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+      notify: restart nginx
+...
